@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
+	"fmt" // เพิ่ม
+	"path/filepath" // เพิ่ม
+	"time"          // เพิ่ม
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -16,16 +18,13 @@ import (
 
 // RegisterHandler รับคำขอสมัครสมาชิก
 func RegisterHandler(c *gin.Context, db *gorm.DB) {
-	var input models.User
-
-	// อ่านข้อมูลจาก JSON
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	// 💥 เปลี่ยนจากการอ่าน JSON มาเป็นการอ่านค่าจาก Form
+	username := c.PostForm("username")
+	email := c.PostForm("email")
+	password := c.PostForm("password")
 
 	// เข้ารหัสรหัสผ่าน
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt password"})
 		return
@@ -33,12 +32,32 @@ func RegisterHandler(c *gin.Context, db *gorm.DB) {
 
 	// เตรียมข้อมูลสำหรับบันทึก
 	user := models.User{
-		Username:     input.Username,
-		Email:        input.Email,
-		Password:     string(hashedPassword),
-		ImageProfile: input.ImageProfile,
-		Role:         "member",
-		Wallet:       0.00,
+		Username: username,
+		Email:    email,
+		Password: string(hashedPassword),
+		Role:     "member",
+		Wallet:   0.00,
+	}
+
+	// 👇 จัดการไฟล์ที่อัปโหลดเข้ามา
+	file, err := c.FormFile("imageProfile")
+	// ถ้ามีไฟล์ส่งมาด้วย (err == nil)
+	if err == nil {
+		// 1. สร้างชื่อไฟล์ใหม่ที่ไม่ซ้ำกัน เพื่อป้องกันไฟล์ชื่อซ้ำกันทับกัน
+		extension := filepath.Ext(file.Filename)
+		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), extension)
+		
+		// 2. กำหนดเส้นทางที่จะบันทึกไฟล์
+		filePath := "uploads/" + newFileName
+		
+		// 3. บันทึกไฟล์ลงในเซิร์ฟเวอร์
+		if err := c.SaveUploadedFile(file, filePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save file"})
+			return
+		}
+		
+		// 4. เก็บ *เส้นทางของไฟล์* ลงใน object ที่จะบันทึกลง DB
+		user.ImageProfile = filePath
 	}
 
 	// บันทึกลงฐานข้อมูล

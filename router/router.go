@@ -10,7 +10,7 @@ import (
 
 // SetupRouter ตั้งค่า routes ของแอป
 func SetupRouter(r *gin.Engine, db *gorm.DB) {
-
+	r.Static("/uploads", "./uploads")
 	// ---------- Public Routes ----------
 	r.POST("/register", func(c *gin.Context) {
 		handlers.RegisterHandler(c, db)
