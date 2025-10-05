@@ -1,22 +1,23 @@
 package handlers
 
 import (
+	// ตรวจสอบ path ของ model ให้ถูกต้อง
 	models "api-game/model"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt" // 👈 1. Import bcrypt สำหรับเข้ารหัส
 	"gorm.io/gorm"
 )
 
-// ... GetProfileHandler (ถ้ามี) ...
-
-// UpdateProfileHandler จัดการการอัปเดตข้อมูลโปรไฟล์
+// EditProfileHandler จัดการการอัปเดตข้อมูลโปรไฟล์
 func EditProfileHandler(c *gin.Context, db *gorm.DB) {
-	// 1. สร้าง struct เพื่อรับข้อมูลจาก JSON body
+	// 2. อัปเดต struct ที่รับข้อมูลเข้ามา
 	var input struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		// เพิ่ม field อื่นๆ ที่ต้องการให้แก้ไขได้ที่นี่
+		Username     string `json:"username"`
+		Email        string `json:"email"`
+		ImageProfile string `json:"imageProfile"`
+		Password     string `json:"password"` // รับรหัสผ่านใหม่ (อาจจะเป็นค่าว่าง)
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -24,30 +25,44 @@ func EditProfileHandler(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	// 2. ดึง user_id จาก token ที่ middleware แปะมาให้
-	// **หมายเหตุ:** เราจะถือว่ามี middleware ที่ทำการ decode token และเก็บ user_id ไว้ใน context แล้ว
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	// 3. ค้นหา user เดิมในฐานข้อมูล
 	var user models.User
 	if err := db.First(&user, userID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	// 4. อัปเดตข้อมูลเฉพาะ field ที่มีการส่งค่ามา
-	// ใช้ .Model(&user) เพื่อระบุว่าจะอัปเดต record ไหน
-	// ใช้ .Updates() เพื่ออัปเดตเฉพาะ field ที่ไม่เป็น zero-value
-	if err := db.Model(&user).Updates(models.User{Username: input.Username, Email: input.Email}).Error; err != nil {
+	// 3. เตรียมข้อมูลที่จะอัปเดต
+	updateData := models.User{
+		Username:     input.Username,
+		Email:        input.Email,
+		ImageProfile: input.ImageProfile,
+	}
+
+	// 4. ตรวจสอบว่ามีการส่งรหัสผ่านใหม่มาหรือไม่
+	if input.Password != "" {
+		// ถ้ามี ให้ทำการ hash รหัสผ่านใหม่
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash new password"})
+			return
+		}
+		// เพิ่มรหัสผ่านที่เข้ารหัสแล้วเข้าไปในข้อมูลที่จะอัปเดต
+		updateData.Password = string(hashedPassword)
+	}
+
+	// 5. อัปเดตข้อมูลในฐานข้อมูล
+	if err := db.Model(&user).Updates(updateData).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile", "details": err.Error()})
 		return
 	}
 
-	// 5. ส่งข้อมูลที่อัปเดตแล้วกลับไป (ยกเว้นรหัสผ่าน)
+	// ส่งข้อมูลที่อัปเดตแล้วกลับไป
 	user.Password = "" // ไม่ส่งรหัสผ่านกลับไป
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",

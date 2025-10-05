@@ -106,6 +106,8 @@ func LoginHandler(c *gin.Context, db *gorm.DB) {
 		},
 	})
 }
+
+
 func Profile(c *gin.Context, db *gorm.DB) {
 	userIDStr := c.Query("user_id") // ดึง user_id จาก query string
 	userID, err := strconv.ParseUint(userIDStr, 10, 64)
