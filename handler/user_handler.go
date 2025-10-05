@@ -1,30 +1,18 @@
 package handlers
 
 import (
-	// ตรวจสอบ path ของ model ให้ถูกต้อง
 	models "api-game/model"
+	"fmt"
 	"net/http"
+	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt" // 👈 1. Import bcrypt สำหรับเข้ารหัส
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-// EditProfileHandler จัดการการอัปเดตข้อมูลโปรไฟล์
 func EditProfileHandler(c *gin.Context, db *gorm.DB) {
-	// 2. อัปเดต struct ที่รับข้อมูลเข้ามา
-	var input struct {
-		Username     string `json:"username"`
-		Email        string `json:"email"`
-		ImageProfile string `json:"imageProfile"`
-		Password     string `json:"password"` // รับรหัสผ่านใหม่ (อาจจะเป็นค่าว่าง)
-	}
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
-		return
-	}
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -37,33 +25,64 @@ func EditProfileHandler(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	// 3. เตรียมข้อมูลที่จะอัปเดต
-	updateData := models.User{
-		Username:     input.Username,
-		Email:        input.Email,
-		ImageProfile: input.ImageProfile,
+	updateData := make(map[string]interface{})
+
+	// --- 👇 ส่วนที่แก้ไขตามแนวคิดของคุณ + แก้ไข Key ---
+
+	// 1. ตรวจสอบ Username: ถ้ามีค่าใหม่ และไม่เหมือนค่าเดิม ถึงจะอัปเดต
+	if username := c.PostForm("username"); username != "" && username != user.Username {
+		updateData["username"] = username // key "username" ถูกต้อง
 	}
 
-	// 4. ตรวจสอบว่ามีการส่งรหัสผ่านใหม่มาหรือไม่
-	if input.Password != "" {
-		// ถ้ามี ให้ทำการ hash รหัสผ่านใหม่
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	// 2. ตรวจสอบ Email: ถ้ามีค่าใหม่ และไม่เหมือนค่าเดิม ถึงจะอัปเดต
+	if email := c.PostForm("email"); email != "" && email != user.Email {
+		updateData["email"] = email // key "email" ถูกต้อง
+	}
+
+	// 3. จัดการไฟล์รูปภาพ
+	file, err := c.FormFile("imageProfile")
+	if err == nil {
+		extension := filepath.Ext(file.Filename)
+		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), extension)
+		filePath := "uploads/" + newFileName
+		if err := c.SaveUploadedFile(file, filePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save uploaded file"})
+			return
+		}
+		// 💥 แก้ไข Key ให้ตรงกับชื่อคอลัมน์ใน DB
+		updateData["image_profile"] = filePath
+	}
+
+	// 4. จัดการรหัสผ่านใหม่ (ไม่ต้องเทียบของเก่า)
+	if password := c.PostForm("password"); password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash new password"})
 			return
 		}
-		// เพิ่มรหัสผ่านที่เข้ารหัสแล้วเข้าไปในข้อมูลที่จะอัปเดต
-		updateData.Password = string(hashedPassword)
+		updateData["password"] = string(hashedPassword) // key "password" ถูกต้อง
 	}
 
-	// 5. อัปเดตข้อมูลในฐานข้อมูล
+	// 5. ตรวจสอบว่ามีข้อมูลให้อัปเดตหรือไม่
+	if len(updateData) == 0 {
+		// ถ้าไม่มีอะไรเปลี่ยนแปลงเลย ก็ส่ง response กลับไปว่าสำเร็จ แต่ไม่มีอะไรอัปเดต
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "success",
+			"message": "No changes detected",
+			"user":    user,
+		})
+		return
+	}
+
+	// 6. อัปเดตข้อมูลลงฐานข้อมูล
 	if err := db.Model(&user).Updates(updateData).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile", "details": err.Error()})
 		return
 	}
 
-	// ส่งข้อมูลที่อัปเดตแล้วกลับไป
-	user.Password = "" // ไม่ส่งรหัสผ่านกลับไป
+	// ดึงข้อมูลล่าสุดหลังจากอัปเดตเพื่อส่งกลับ
+	db.First(&user, userID)
+	user.Password = ""
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"message": "Profile updated successfully",
