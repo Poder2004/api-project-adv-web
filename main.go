@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/cors" 
 )
 
 func main() {
@@ -18,6 +19,8 @@ func main() {
 
 	// สร้าง Gin router
 	r := gin.Default()
+	
+	r.Use(cors.Default())
 
 	// เรียกใช้ routes จาก package routers
 	routers.SetupRouter(r, db)
