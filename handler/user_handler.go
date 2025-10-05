@@ -11,6 +11,34 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+// GetProfileHandler ดึงข้อมูลโปรไฟล์ของผู้ใช้ที่ล็อกอินอยู่
+func GetProfileHandler(c *gin.Context, db *gorm.DB) {
+	// 1. ดึง user_id จาก token ที่ middleware แปะมาให้
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	// 2. ค้นหา user ในฐานข้อมูลด้วย user_id
+	var user models.User
+	if err := db.First(&user, userID).Error; err != nil {
+		// GORM จะ return 'record not found' error ถ้าไม่เจอ
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// 3. ไม่ส่งรหัสผ่านกลับไปเพื่อความปลอดภัย
+	user.Password = ""
+
+	// 4. ส่งข้อมูลโปรไฟล์ทั้งหมดกลับไปเป็น JSON
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Profile fetched successfully",
+		"user":    user,
+	})
+}
+
 
 func EditProfileHandler(c *gin.Context, db *gorm.DB) {
 	userID, exists := c.Get("user_id")

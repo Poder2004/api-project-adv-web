@@ -39,8 +39,11 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		protected.PUT("/profile", func(c *gin.Context) {
+		protected.PUT("/updateprofile", func(c *gin.Context) {
 			handlers.EditProfileHandler(c, db)
+		})
+		protected.GET("/profile", func(c *gin.Context) {
+			handlers.GetProfileHandler(c, db)
 		})
 	}
 }

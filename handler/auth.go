@@ -4,7 +4,6 @@ import (
 	models "api-game/model"
 	"net/http"
 	"os"
-	"strconv"
 	"fmt" // เพิ่ม
 	"path/filepath" // เพิ่ม
 	"time"          // เพิ่ม
@@ -122,35 +121,6 @@ func LoginHandler(c *gin.Context, db *gorm.DB) {
 			"role":         user.Role,
 			"wallet":       user.Wallet,
 			"ImageProfile": user.ImageProfile,
-		},
-	})
-}
-
-
-func Profile(c *gin.Context, db *gorm.DB) {
-	userIDStr := c.Query("user_id") // ดึง user_id จาก query string
-	userID, err := strconv.ParseUint(userIDStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
-		return
-	}
-
-	var user models.User
-
-	sql := "SELECT username, email FROM users WHERE user_id = ?"
-
-	if err := db.Raw(sql, userID).Scan(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-		return
-	}
-	// --- สิ้นสุดส่วนที่แก้ไข ---
-
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "profile found",
-		"user": gin.H{
-			"username": user.Username,
-			"email":    user.Email,
 		},
 	})
 }
