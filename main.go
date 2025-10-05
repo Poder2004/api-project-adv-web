@@ -1,28 +1,33 @@
 package main
 
 import (
-	"api-game/database" // Import package ที่สร้างขึ้น
-	"api-game/router"   // Import package ที่สร้างขึ้น
+	"api-game/database"
+	routers "api-game/router"
 	"log"
-	"net/http"
+	"os"
 
-	"github.com/joho/godotenv"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// 1. โหลดค่าจากไฟล์ .env
-	err := godotenv.Load()
+	// ตั้งค่าการเชื่อมต่อฐานข้อมูล
+	db, err := database.SetupDatabaseConnection()
 	if err != nil {
-		log.Fatal("เกิดข้อผิดพลาดในการโหลดไฟล์ .env")
+		panic("Failed to connect to the database")
 	}
 
-	// 2. เรียกใช้ฟังก์ชัน InitDB จาก package database
-	database.InitDB()
+	// สร้าง Gin router
+	r := gin.Default()
 
-	// 3. เรียกใช้ฟังก์ชัน SetupRouter จาก package router
-	r := router.SetupRouter()
+	// เรียกใช้ routes จาก package routers
+	routers.SetupRouter(r, db)
 
-	// 4. รัน Web Server ที่ Port 8080 โดยใช้ router ที่ตั้งค่าไว้
-	log.Println("เซิร์ฟเวอร์กำลังทำงานที่พอร์ต 8080...")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // default เวลา run local
+	}
+	log.Printf("🚀 Server running on port %s", port)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatal("❌ Failed to start server: ", err)
+	}
 }

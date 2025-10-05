@@ -1,24 +1,53 @@
 package middleware
 
 import (
-	"log"
+	"fmt"
 	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-// AuthMiddleware เป็นตัวอย่าง middleware สำหรับตรวจสอบสิทธิ์
-// ในโค้ดจริง ส่วนนี้อาจจะมีการตรวจสอบ JWT Token หรือ Session
-func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Middleware: ตรวจสอบ Request...")
+// 🔑 คีย์ลับสำหรับเซ็นโทเคน (ต้องเหมือนกับตอนสร้าง token ใน LoginHandler)
+var jwtSecret = []byte("my_secret_key")
 
-		// ตรรกะการตรวจสอบสิทธิ์จะอยู่ตรงนี้
-		// isAuthenticated := true // สมมติว่าตรวจสอบแล้วผ่าน
-		// if !isAuthenticated {
-		// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		// 	return
-		// }
+// AuthMiddleware ตรวจสอบ JWT Token ก่อนเข้า endpoint
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Missing Authorization header"})
+			c.Abort()
+			return
+		}
 
-		// ถ้าผ่าน ก็ส่งต่อไปให้ handler ตัวถัดไปทำงาน
-		next.ServeHTTP(w, r)
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
+			return jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Invalid claims"})
+			c.Abort()
+			return
+		}
+
+		// เก็บข้อมูลใน Context เพื่อให้ใช้ต่อใน Handler ได้
+		c.Set("user_id", claims["user_id"])
+		c.Set("username", claims["username"])
+		c.Set("role", claims["role"])
+
+		c.Next()
 	}
 }
