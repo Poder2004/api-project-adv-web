@@ -1,16 +1,14 @@
 package middleware
 
 import (
+	"api-game/config" // <-- 1. Import package config ที่สร้างใหม่
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWT secret key (ควรดึงมาจาก .env)
-var jwtSecret = []byte(os.Getenv("JWT_SECRET")) // ใช้ key เดียวกับตอนสร้าง token
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -27,7 +25,8 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			// ✅ 2. เปลี่ยนมาใช้ Secret Key จาก config ที่โหลดมาแล้ว
+			return []byte(config.JWTSecret), nil
 		})
 
 		if err != nil || !token.Valid {

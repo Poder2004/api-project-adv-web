@@ -2,6 +2,7 @@ package routers
 
 import (
 	handlers "api-game/handler"
+	handlersadmin "api-game/handler/admin"
 	"api-game/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,10 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		handlers.LoginHandler(c, db)
 	})
 
+	  r.GET("/api/categories", func(c *gin.Context) {
+        handlers.GetAllCategories(c, db)
+    })
+
 	// Protected routes
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware())
@@ -30,6 +35,15 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		})
 		protected.GET("/profile", func(c *gin.Context) {
 			handlers.GetProfileHandler(c, db)
+		})
+	}
+
+
+	admin := r.Group("/admin")
+	admin.Use(middleware.AuthMiddleware())
+	{
+		admin.POST("/addgames", func(c *gin.Context) {
+			handlersadmin.CreateGame(c, db)
 		})
 	}
 }

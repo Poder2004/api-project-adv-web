@@ -1,16 +1,19 @@
 package main
 
 import (
+	"api-game/config" // <-- 1. Import package config ที่สร้างใหม่
 	"api-game/database"
 	routers "api-game/router"
 	"log"
 	"os"
 
-	"github.com/gin-contrib/cors" // import ตัวนี้
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	config.LoadConfig() // <-- 2. เรียกใช้ฟังก์ชันโหลด .env ก่อนทำอย่างอื่น
+
 	// ตั้งค่าการเชื่อมต่อฐานข้อมูล
 	db, err := database.SetupDatabaseConnection()
 	if err != nil {
@@ -25,7 +28,7 @@ func main() {
 	config := cors.Config{
 		AllowOrigins:     []string{"http://localhost:4200"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"}, // <<-- จุดสำคัญ! เพิ่ม Authorization ตรงนี้
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}

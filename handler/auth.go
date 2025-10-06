@@ -1,35 +1,32 @@
 package handlers
 
 import (
+	"api-game/config" // <-- 1. Import package config ที่สร้างใหม่
 	models "api-game/model"
+	"fmt"
 	"net/http"
-	"os"
-	"fmt" // เพิ่ม
-	"path/filepath" // เพิ่ม
-	"time"          // เพิ่ม
+	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // RegisterHandler รับคำขอสมัครสมาชิก
 func RegisterHandler(c *gin.Context, db *gorm.DB) {
-	// 💥 เปลี่ยนจากการอ่าน JSON มาเป็นการอ่านค่าจาก Form
+	// ... โค้ดส่วนนี้เหมือนเดิมทุกประการ ...
 	username := c.PostForm("username")
 	email := c.PostForm("email")
 	password := c.PostForm("password")
 
-	// เข้ารหัสรหัสผ่าน
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt password"})
 		return
 	}
 
-	// เตรียมข้อมูลสำหรับบันทึก
 	user := models.User{
 		Username: username,
 		Email:    email,
@@ -38,28 +35,18 @@ func RegisterHandler(c *gin.Context, db *gorm.DB) {
 		Wallet:   0.00,
 	}
 
-	// 👇 จัดการไฟล์ที่อัปโหลดเข้ามา
 	file, err := c.FormFile("imageProfile")
-	// ถ้ามีไฟล์ส่งมาด้วย (err == nil)
 	if err == nil {
-		// 1. สร้างชื่อไฟล์ใหม่ที่ไม่ซ้ำกัน เพื่อป้องกันไฟล์ชื่อซ้ำกันทับกัน
 		extension := filepath.Ext(file.Filename)
 		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), extension)
-		
-		// 2. กำหนดเส้นทางที่จะบันทึกไฟล์
 		filePath := "uploads/" + newFileName
-		
-		// 3. บันทึกไฟล์ลงในเซิร์ฟเวอร์
 		if err := c.SaveUploadedFile(file, filePath); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save file"})
 			return
 		}
-		
-		// 4. เก็บ *เส้นทางของไฟล์* ลงใน object ที่จะบันทึกลง DB
 		user.ImageProfile = filePath
 	}
 
-	// บันทึกลงฐานข้อมูล
 	if err := db.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -72,7 +59,6 @@ func RegisterHandler(c *gin.Context, db *gorm.DB) {
 	})
 }
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET")) // ตั้งใน .env เช่น JWT_SECRET=mysecretkey
 
 func LoginHandler(c *gin.Context, db *gorm.DB) {
 	var input struct {
@@ -84,14 +70,12 @@ func LoginHandler(c *gin.Context, db *gorm.DB) {
 		return
 	}
 
-	// ค้นหาผู้ใช้จาก username
 	var user models.User
 	if err := db.Where("username = ?", input.Username).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Invalid username or password"})
 		return
 	}
 
-	// ตรวจรหัสผ่าน
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Invalid username or password"})
 		return
@@ -101,10 +85,11 @@ func LoginHandler(c *gin.Context, db *gorm.DB) {
 		"user_id":  user.UserID,
 		"username": user.Username,
 		"role":     user.Role,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(), // หมดอายุใน 24 ชม.
+		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(jwtSecret)
+	// ✅ 2. เปลี่ยนมาใช้ Secret Key จาก config ที่โหลดมาแล้ว
+	tokenString, err := token.SignedString([]byte(config.JWTSecret))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create token"})
 		return

@@ -1,4 +1,4 @@
-package models
+package model
 
 type User struct {
 	UserID       uint    `json:"user_id" gorm:"column:user_id;primaryKey;autoIncrement"`
@@ -8,6 +8,14 @@ type User struct {
 	Role         string  `json:"role" gorm:"column:role;type:enum('member','admin');default:'member';not null"`
 	ImageProfile string  `json:"image_profile" gorm:"column:image_profile;type:varchar(255)"`
 	Wallet       float64 `json:"wallet" gorm:"column:wallet;type:decimal(10,2);default:0"`
+
+	// Relationships
+	// Orders   []Order `gorm:"foreignKey:UserID" json:"orders,omitempty"`
+	// Library  []Game  `gorm:"many2many:user_library;" json:"library,omitempty"` // ความสัมพันธ์ many-to-many
 }
 
 
+type UserLibrary struct {
+	UserID uint `gorm:"primaryKey"`
+	GameID uint `gorm:"primaryKey"`
+}
