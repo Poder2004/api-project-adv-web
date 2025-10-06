@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-contrib/cors" // import ตัวนี้
 	"github.com/gin-gonic/gin"
-	"github.com/gin-contrib/cors" 
 )
 
 func main() {
@@ -19,8 +19,20 @@ func main() {
 
 	// สร้าง Gin router
 	r := gin.Default()
-	
-	r.Use(cors.Default())
+
+	// --- เริ่มส่วนที่แก้ไข CORS ---
+	// กำหนดค่าคอนฟิกของ CORS ด้วยตัวเอง
+	config := cors.Config{
+		AllowOrigins:     []string{"http://localhost:4200"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"}, // <<-- จุดสำคัญ! เพิ่ม Authorization ตรงนี้
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}
+
+	// ใช้ middleware ของ CORS ที่เราสร้างขึ้นมา
+	r.Use(cors.New(config))
+	// --- จบส่วนที่แก้ไข CORS ---
 
 	// เรียกใช้ routes จาก package routers
 	routers.SetupRouter(r, db)
