@@ -4,6 +4,7 @@ import (
 	handlers "api-game/handler"
 	handlersadmin "api-game/handler/admin"
 	"api-game/middleware"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -11,6 +12,11 @@ import (
 
 // SetupRouter ตั้งค่า routes ของแอป
 func SetupRouter(r *gin.Engine, db *gorm.DB) {
+
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "Hello game")
+	})
+	
 	r.Static("/uploads", "./uploads")
 
 	// ---------- Public Routes ----------
