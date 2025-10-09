@@ -1,4 +1,4 @@
-package handlersadmin // หรือ package handler ตามโครงสร้างของคุณ
+package handlersadmin 
 
 import (
 	"api-game/model"
@@ -78,5 +78,29 @@ func CreateGame(c *gin.Context, db *gorm.DB) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Game created successfully",
 		"data":    game,
+	})
+}
+
+// GetAllGamesHandler handles fetching all games.
+func GetAllGamesHandler(c *gin.Context, db *gorm.DB) {
+	var games []model.Game
+
+	// Use Preload("Category") to automatically fetch the associated category for each game.
+	// This is known as "Eager Loading".
+	if err := db.Preload("Category").Find(&games).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch games from database"})
+		return
+	}
+
+	// If no games are found, GORM returns an empty slice, not an error.
+	// It's good practice to ensure the slice is not nil for JSON marshalling.
+	if games == nil {
+		games = []model.Game{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Games fetched successfully",
+		"data":    games,
 	})
 }

@@ -25,13 +25,20 @@ type Game struct {
 	Category Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 }
 
-// DiscountCode แทนข้อมูลในตาราง discount_code
+// DiscountCode แทนข้อมูลในตาราง discount_code (ฉบับอัปเดต)
 type DiscountCode struct {
-	DID         uint   `gorm:"primaryKey" json:"did"`
-	NameCode    string `gorm:"type:varchar(50);unique;not null" json:"name_code"`
-	Description string `gorm:"type:text" json:"description"`
-	LimitUsage  int    `json:"limit_usage"`
-	UsedCount   int    `gorm:"default:0" json:"used_count"`
+	DID           uint    `gorm:"primaryKey" json:"did"`
+	NameCode      string  `gorm:"type:varchar(50);unique;not null" json:"name_code"`
+	Description   string  `gorm:"type:text" json:"description"`
+	DiscountValue float64 `gorm:"type:decimal(10,2);not null" json:"discount_value"`
+	DiscountType  string  `gorm:"type:varchar(10);not null;default:'fixed'" json:"discount_type"`
+	MinValue      float64 `gorm:"type:decimal(10,2);not null;default:0.00" json:"min_value"`
+	LimitUsage    int     `json:"limit_usage"`
+	UsedCount     int     `gorm:"default:0" json:"used_count"`
+}
+
+func (DiscountCode) TableName() string {
+	return "discount_code" // 👈 บอก GORM ให้ใช้ชื่อตารางนี้
 }
 
 // Order แทนข้อมูลในตาราง orders
