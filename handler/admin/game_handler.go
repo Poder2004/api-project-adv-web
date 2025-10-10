@@ -1,9 +1,10 @@
-package handlersadmin 
+package handlersadmin
 
 import (
 	"api-game/model"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -103,4 +104,101 @@ func GetAllGamesHandler(c *gin.Context, db *gorm.DB) {
 		"message": "Games fetched successfully",
 		"data":    games,
 	})
+}
+
+// UpdateGameHandler จัดการการอัปเดตข้อมูลเกม
+func UpdateGameHandler(c *gin.Context, db *gorm.DB) {
+	// 1. ดึง ID ของเกมจาก URL
+	id := c.Param("id")
+
+	var game model.Game
+	// 2. ค้นหาเกมเดิมในฐานข้อมูล
+	if err := db.First(&game, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
+		return
+	}
+
+	// 3. สร้าง map เพื่อเก็บข้อมูลที่จะอัปเดตแบบไดนามิก
+	updateData := make(map[string]interface{})
+
+	// 4. ตรวจสอบแต่ละ field จาก form-data และเพิ่มลงใน map ถ้ามีค่า
+	if title := c.PostForm("title"); title != "" {
+		updateData["title"] = title
+	}
+	if description := c.PostForm("description"); description != "" {
+		updateData["description"] = description
+	}
+	if priceStr := c.PostForm("price"); priceStr != "" {
+		if price, err := strconv.ParseFloat(priceStr, 64); err == nil {
+			updateData["price"] = price
+		}
+	}
+	if categoryIDStr := c.PostForm("category_id"); categoryIDStr != "" {
+		if categoryID, err := strconv.Atoi(categoryIDStr); err == nil {
+			updateData["category_id"] = uint(categoryID)
+		}
+	}
+
+	// 5. จัดการไฟล์รูปภาพ (ถ้ามีการส่งไฟล์ใหม่มา)
+	if file, err := c.FormFile("image"); err == nil {
+		extension := filepath.Ext(file.Filename)
+		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), extension)
+		filePath := "uploads/" + newFileName
+		if err := c.SaveUploadedFile(file, filePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to save uploaded file"})
+			return
+		}
+		updateData["image_game"] = filePath
+	}
+
+	// 6. ตรวจสอบว่ามีข้อมูลให้อัปเดตหรือไม่
+	if len(updateData) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No data provided for update"})
+		return
+	}
+
+	// 7. อัปเดตข้อมูลลงฐานข้อมูล
+	if err := db.Model(&game).Updates(updateData).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update game", "details": err.Error()})
+		return
+	}
+
+	// ดึงข้อมูลล่าสุดหลังจากอัปเดตเพื่อส่งกลับ
+	db.Preload("Category").First(&game, id)
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Game updated successfully",
+		"data":    game,
+	})
+}
+
+// DeleteGameHandler จัดการการลบเกม (Soft Delete)
+func DeleteGameHandler(c *gin.Context, db *gorm.DB) {
+	// 1. ดึง ID จาก URL parameter
+	id := c.Param("id")
+
+	var game model.Game
+	// 2. ค้นหาเกมที่จะลบก่อน เพื่อจะเอา path ของรูปภาพมาใช้ลบไฟล์ทิ้ง
+	if err := db.First(&game, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
+		return
+	}
+	
+	imagePath := game.ImageGame
+
+	// 3. สั่งลบเกมด้วย GORM
+	//    เพราะเราเพิ่ม gorm.DeletedAt ใน model แล้ว GORM จะทำ Soft Delete ให้เอง
+	//    (GORM จะรันคำสั่ง UPDATE games SET deleted_at = 'เวลาปัจจุบัน' WHERE id = ...)
+	if err := db.Delete(&model.Game{}, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete game"})
+		return
+	}
+
+	// 4. (แนะนำ) ลบไฟล์รูปภาพออกจากเซิร์ฟเวอร์ด้วย เพื่อไม่ให้เปลืองพื้นที่
+	if imagePath != "" {
+		os.Remove(imagePath)
+	}
+
+	// 5. ส่ง Status 204 No Content กลับไป ซึ่งเป็นมาตรฐานสำหรับ DELETE request ที่สำเร็จ
+	c.Status(http.StatusNoContent)
 }

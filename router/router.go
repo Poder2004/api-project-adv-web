@@ -83,5 +83,13 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		admin.GET("/alluser", func(c *gin.Context) {
 			handlersadmin.GetAllUsersHandler(c, db)
 		})
+
+		admin.PUT("/games/:id", func(c *gin.Context) {
+			handlersadmin.UpdateGameHandler(c, db)
+		})
+
+		admin.DELETE("/games/:id", func(c *gin.Context) {
+			handlersadmin.DeleteGameHandler(c, db)
+		})
 	}
 }

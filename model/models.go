@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 // Category แทนข้อมูลในตาราง categories
 type Category struct {
@@ -23,6 +27,7 @@ type Game struct {
 
 	// Relationships
 	Category Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // DiscountCode แทนข้อมูลในตาราง discount_code (ฉบับอัปเดต)
