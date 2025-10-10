@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"api-game/model"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -53,3 +54,27 @@ func SearchHandler(c *gin.Context, db *gorm.DB) {
 		"data":    games,
 	})
 }
+
+
+// handler/admin/game_handler.go (ต่อท้ายไฟล์เดิม)
+func GetGameByIDHandler(c *gin.Context, db *gorm.DB) {
+    idStr := c.Param("id")
+    var game model.Game
+
+    // preload category มาด้วย
+    if err := db.Preload("Category").First(&game, "game_id = ?", idStr).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "game not found"})
+            return
+        }
+        c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "db error"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "status":  "success",
+        "message": "game fetched",
+        "data":    game,
+    })
+}
+

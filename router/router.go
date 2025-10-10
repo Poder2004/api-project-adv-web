@@ -32,6 +32,9 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 	r.GET("/api/categories", func(c *gin.Context) {
 		handlers.GetAllCategories(c, db)
 	})
+	r.GET("/api/games/:id", func(c *gin.Context) {
+			handlers.GetGameByIDHandler(c, db)
+		})
 
 	// Protected routes
 	protected := r.Group("/api")
@@ -55,6 +58,11 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		protected.GET("/my-coupons", func(c *gin.Context) {
 			handlersauser.GetMyCouponsHandler(c, db)
 		})
+		//  เติมเงิน
+		protected.POST("/wallet", func(c *gin.Context) {
+			handlers.AddWalletHandler(c, db)
+		})
+		
 	}
 
 	admin := r.Group("/admin")
