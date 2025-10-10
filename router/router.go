@@ -33,8 +33,8 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		handlers.GetAllCategories(c, db)
 	})
 	r.GET("/api/games/:id", func(c *gin.Context) {
-			handlers.GetGameByIDHandler(c, db)
-		})
+		handlers.GetGameByIDHandler(c, db)
+	})
 
 	// Protected routes
 	protected := r.Group("/api")
@@ -62,7 +62,11 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		protected.POST("/wallet", func(c *gin.Context) {
 			handlers.AddWalletHandler(c, db)
 		})
-		
+		// ✅ เส้นใหม่สำหรับดึงประวัติ
+		protected.GET("/wallet/history", func(c *gin.Context) {
+			handlers.GetWalletHistoryHandler(c, db)
+		})
+
 	}
 
 	admin := r.Group("/admin")

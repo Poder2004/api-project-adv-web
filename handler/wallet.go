@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"api-game/model"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"net/http"
+	"time"
 )
 
 // ✅ ฟังก์ชันเติมเงินเข้ากระเป๋า
@@ -36,9 +36,43 @@ func AddWalletHandler(c *gin.Context, db *gorm.DB) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถอัปเดตยอดเงินได้"})
 		return
 	}
-
+	// ---- เก็บประวัติการเติมเงิน (เพิ่มบล็อกนี้) ----
+	history := model.WalletHistory{
+		UserID:          req.UserID,
+		Amount:          req.Amount,
+		TransactionDate: time.Now(),
+	}
+	if err := db.Create(&history).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "บันทึกประวัติเติมเงินไม่สำเร็จ"})
+		return
+	}
+	// -----------------------------------------------
 	c.JSON(http.StatusOK, gin.H{
 		"message": "เติมเงินสำเร็จ",
 		"wallet":  user.Wallet,
 	})
+}
+
+// .ประวัติการเติมเงิน
+
+func GetWalletHistoryHandler(c *gin.Context, db *gorm.DB) {
+    userIDStr := c.Query("user_id")
+    if userIDStr == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "missing user_id"})
+        return
+    }
+
+    var histories []model.WalletHistory
+    if err := db.Where("user_id = ?", userIDStr).
+        Order("transaction_date DESC").
+        Find(&histories).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "query history failed"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "status":  "success",
+        "message": "ok",
+        "data":    histories,
+    })
 }

@@ -26,13 +26,13 @@ type Game struct {
 	CategoryID  uint      `json:"category_id"`
 
 	// Relationships
-	Category Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	Category  Category       `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // DiscountCode แทนข้อมูลในตาราง discount_code (ฉบับอัปเดต)
 type DiscountCode struct {
-	DID           uint    `gorm:"primaryKey;column:did" json:"did"` 
+	DID           uint    `gorm:"primaryKey;column:did" json:"did"`
 	NameCode      string  `gorm:"type:varchar(50);unique;not null" json:"name_code"`
 	Description   string  `gorm:"type:text" json:"description"`
 	DiscountValue float64 `gorm:"type:decimal(10,2);not null" json:"discount_value"`
@@ -74,13 +74,13 @@ type OrderDetail struct {
 
 // WalletHistory แทนข้อมูลในตาราง wallet_history (ฉบับเรียบง่าย)
 type WalletHistory struct {
-    HistoryID       uint      `gorm:"primaryKey" json:"history_id"`
-    UserID          uint      `gorm:"not null" json:"user_id"`
-    Amount          float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
-    TransactionDate time.Time `gorm:"type:datetime;not null" json:"transaction_date"`
+	HistoryID       uint      `gorm:"primaryKey" json:"history_id"`
+	UserID          uint      `gorm:"not null" json:"user_id"`
+	Amount          float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+	TransactionDate time.Time `gorm:"type:datetime;not null" json:"transaction_date"`
 }
 
 // TableName บอก GORM ให้ใช้ชื่อตาราง "wallet_history" นี้โดยตรง
 func (WalletHistory) TableName() string {
-  return "wallet_history"
+	return "wallet_history"
 }
