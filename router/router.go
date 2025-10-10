@@ -91,5 +91,15 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		admin.DELETE("/games/:id", func(c *gin.Context) {
 			handlersadmin.DeleteGameHandler(c, db)
 		})
+
+		//เส้นทางสำหรับดึงข้อมูลผู้ใช้คนเดียว
+		admin.GET("/users/:id", func(c *gin.Context) {
+			handlersadmin.GetUserByIDHandler(c, db)
+		})
+
+		//เส้นทางสำหรับดึงประวัติการซื้อของผู้ใช้คนนั้น
+		admin.GET("/users/:id/orders", func(c *gin.Context) {
+			handlersadmin.GetUserOrdersHandler(c, db)
+		})
 	}
 }
