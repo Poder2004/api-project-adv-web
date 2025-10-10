@@ -3,6 +3,7 @@ package routers
 import (
 	handlers "api-game/handler"
 	handlersadmin "api-game/handler/admin"
+	handlersauser "api-game/handler/user"
 	"api-game/middleware"
 	"net/http"
 
@@ -42,6 +43,15 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		protected.GET("/profile", func(c *gin.Context) {
 			handlers.GetProfileHandler(c, db)
 		})
+		         // ใช้ POST /api/coupons/:did/claim
+         protected.POST("/coupons/:did/claim", func(c *gin.Context) {
+             handlersauser.ClaimCouponHandler(c, db)
+         })
+		   // ✅ เพิ่ม Route นี้เข้าไปใหม่
+		protected.GET("/my-coupons", func(c *gin.Context) {
+			handlersauser.GetMyCouponsHandler(c, db)
+		})
+
 	}
 
 	admin := r.Group("/admin")

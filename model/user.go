@@ -14,8 +14,20 @@ type User struct {
 	// Library  []Game  `gorm:"many2many:user_library;" json:"library,omitempty"` // ความสัมพันธ์ many-to-many
 }
 
-
 type UserLibrary struct {
 	UserID uint `gorm:"primaryKey"`
 	GameID uint `gorm:"primaryKey"`
+}
+
+type UserCoupon struct {
+	UserCouponID uint `gorm:"primaryKey;autoIncrement" json:"user_coupon_id"`
+	UserID       uint `gorm:"not null" json:"user_id"`
+	DID          uint `gorm:"column:did;not null" json:"did"`
+	IsUsed       bool `gorm:"not null;default:false" json:"is_used"`
+	// แบบใหม่ที่ถูกต้อง
+
+}
+
+func (UserCoupon) TableName() string {
+	return "user_coupons" // บอก GORM ให้ใช้ชื่อตารางนี้
 }
