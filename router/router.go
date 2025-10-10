@@ -31,7 +31,7 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 	r.GET("/api/categories", func(c *gin.Context) {
 		handlers.GetAllCategories(c, db)
 	})
-
+	
 	// Protected routes
 	protected := r.Group("/api")
 	protected.Use(middleware.AuthMiddleware())
@@ -42,6 +42,9 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		protected.GET("/profile", func(c *gin.Context) {
 			handlers.GetProfileHandler(c, db)
 		})
+		protected.GET("/search", func(c *gin.Context) {
+		handlers.SearchHandler(c, db)
+	})
 	}
 
 	admin := r.Group("/admin")
