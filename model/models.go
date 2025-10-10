@@ -27,7 +27,7 @@ type Game struct {
 
 // DiscountCode แทนข้อมูลในตาราง discount_code (ฉบับอัปเดต)
 type DiscountCode struct {
-	DID           uint    `gorm:"primaryKey" json:"did"`
+	DID           uint    `gorm:"primaryKey;column:did" json:"did"` 
 	NameCode      string  `gorm:"type:varchar(50);unique;not null" json:"name_code"`
 	Description   string  `gorm:"type:text" json:"description"`
 	DiscountValue float64 `gorm:"type:decimal(10,2);not null" json:"discount_value"`
