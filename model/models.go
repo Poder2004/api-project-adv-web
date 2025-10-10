@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 // Category แทนข้อมูลในตาราง categories
 type Category struct {
@@ -23,6 +27,7 @@ type Game struct {
 
 	// Relationships
 	Category Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // DiscountCode แทนข้อมูลในตาราง discount_code (ฉบับอัปเดต)
@@ -65,4 +70,17 @@ type OrderDetail struct {
 
 	// Relationship
 	Game Game `gorm:"foreignKey:GameID" json:"game,omitempty"`
+}
+
+// WalletHistory แทนข้อมูลในตาราง wallet_history (ฉบับเรียบง่าย)
+type WalletHistory struct {
+    HistoryID       uint      `gorm:"primaryKey" json:"history_id"`
+    UserID          uint      `gorm:"not null" json:"user_id"`
+    Amount          float64   `gorm:"type:decimal(10,2);not null" json:"amount"`
+    TransactionDate time.Time `gorm:"type:datetime;not null" json:"transaction_date"`
+}
+
+// TableName บอก GORM ให้ใช้ชื่อตาราง "wallet_history" นี้โดยตรง
+func (WalletHistory) TableName() string {
+  return "wallet_history"
 }
