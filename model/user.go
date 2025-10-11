@@ -19,6 +19,12 @@ type UserLibrary struct {
 	GameID uint `gorm:"primaryKey"`
 }
 
+// ✅ เพิ่มฟังก์ชันนี้เข้าไปใต้ struct UserLibrary
+// เพื่อบอก GORM ให้ใช้ชื่อตาราง "user_library" ที่ถูกต้อง
+func (UserLibrary) TableName() string {
+	return "user_library"
+}
+
 type UserCoupon struct {
 	UserCouponID uint `gorm:"primaryKey;autoIncrement" json:"user_coupon_id"`
 	UserID       uint `gorm:"not null" json:"user_id"`

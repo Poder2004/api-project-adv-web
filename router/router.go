@@ -67,6 +67,15 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 			handlers.GetWalletHistoryHandler(c, db)
 		})
 
+			// ✅ เพิ่ม Route สำหรับ Checkout
+		protected.POST("/checkout", func(c *gin.Context) {
+			handlersauser.CheckoutHandler(c, db)
+		})
+		// ✅ เพิ่ม Route นี้เข้าไปใหม่
+		protected.GET("/my-available-coupons", func(c *gin.Context) {
+			handlersauser.GetMyAvailableCouponsHandler(c, db)
+		})
+
 	}
 
 	admin := r.Group("/admin")

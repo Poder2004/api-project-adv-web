@@ -47,21 +47,23 @@ func (DiscountCode) TableName() string {
 }
 
 // Order แทนข้อมูลในตาราง orders
+// Order แทนข้อมูลในตาราง orders
 type Order struct {
-	OrdersID   uint      `gorm:"primaryKey" json:"orders_id"`
-	UserID     uint      `json:"user_id"`
-	DID        *uint     `json:"did"` // ใช้ pointer (*uint) เพื่อให้รับค่า NULL ได้
-	Discount   float64   `gorm:"type:decimal(10,2)" json:"discount"`
-	SumTotal   float64   `gorm:"type:decimal(10,2);not null" json:"sum_total"`
-	FinalTotal float64   `gorm:"type:decimal(10,2);not null" json:"final_total"`
-	OrderDate  time.Time `gorm:"type:datetime" json:"order_date"`
+    OrdersID   uint      `gorm:"primaryKey" json:"orders_id"`
+    UserID     uint      `json:"user_id"`
+    DID        *uint     `gorm:"column:did" json:"did"` // ✅ แก้ไขที่บรรทัดนี้
+    Discount   float64   `gorm:"type:decimal(10,2)" json:"discount"`
+    SumTotal   float64   `gorm:"type:decimal(10,2);not null" json:"sum_total"`
+    FinalTotal float64   `gorm:"type:decimal(10,2);not null" json:"final_total"`
+    OrderDate  time.Time `gorm:"type:datetime" json:"order_date"`
 
-	// Relationships
-	User         User          `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	DiscountCode DiscountCode  `gorm:"foreignKey:DID" json:"discount_code,omitempty"`
-	OrderDetails []OrderDetail `gorm:"foreignKey:OrdersID" json:"order_details,omitempty"`
+    // Relationships
+    User         User          `gorm:"foreignKey:UserID" json:"user,omitempty"`
+    DiscountCode DiscountCode  `gorm:"foreignKey:DID" json:"discount_code,omitempty"`
+    OrderDetails []OrderDetail `gorm:"foreignKey:OrdersID" json:"order_details,omitempty"`
 }
 
+// OrderDetail แทนข้อมูลในตาราง orders_detail
 // OrderDetail แทนข้อมูลในตาราง orders_detail
 type OrderDetail struct {
 	OdID     uint `gorm:"primaryKey" json:"od_id"`
@@ -70,6 +72,12 @@ type OrderDetail struct {
 
 	// Relationship
 	Game Game `gorm:"foreignKey:GameID" json:"game,omitempty"`
+}
+
+// ✅ เพิ่มฟังก์ชันนี้เข้าไปใต้ struct OrderDetail
+// เพื่อบอก GORM ให้ใช้ชื่อตาราง "orders_detail" ที่ถูกต้อง
+func (OrderDetail) TableName() string {
+	return "orders_detail"
 }
 
 // WalletHistory แทนข้อมูลในตาราง wallet_history (ฉบับเรียบง่าย)

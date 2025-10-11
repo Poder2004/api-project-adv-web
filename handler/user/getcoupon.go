@@ -129,4 +129,37 @@ func GetMyCouponsHandler(c *gin.Context, db *gorm.DB) {
 		"message": "User's claimed coupons fetched successfully",
 		"data":    claimedCouponIDs,
 	})
+
 }
+
+// GetMyAvailableCouponsHandler fetches full coupon details that the user has claimed but not yet used.
+func GetMyAvailableCouponsHandler(c *gin.Context, db *gorm.DB) {
+	userIDAny, _ := c.Get("user_id")
+	userID := uint(userIDAny.(float64))
+
+	var availableCoupons []model.DiscountCode
+
+	// ใช้ JOIN เพื่อดึงข้อมูลจากตาราง discount_code
+	// โดยอ้างอิงจากตาราง user_coupons ที่ is_used = false
+	err := db.Joins("JOIN user_coupons ON user_coupons.did = discount_code.did").
+		Where("user_coupons.user_id = ? AND user_coupons.is_used = ?", userID, false).
+		Find(&availableCoupons).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch available coupons"})
+		return
+	}
+
+	if availableCoupons == nil {
+		availableCoupons = []model.DiscountCode{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "User's available coupons fetched successfully",
+		"data":    availableCoupons,
+	})
+}
+
+	
+
