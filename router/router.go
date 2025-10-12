@@ -76,6 +76,10 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 			handlersauser.GetMyAvailableCouponsHandler(c, db)
 		})
 
+		protected.GET("/orders", func(c *gin.Context) {
+			handlers.GetMyOrdersHandler(c, db)
+		})
+
 	}
 
 	admin := r.Group("/admin")
@@ -113,6 +117,11 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		//เส้นทางสำหรับดึงประวัติการซื้อของผู้ใช้คนนั้น
 		admin.GET("/users/:id/orders", func(c *gin.Context) {
 			handlersadmin.GetUserOrdersHandler(c, db)
+		})
+
+		//เส้นทางสำหรับดึงประวัติการเติมเงินของผู้ใช้
+		admin.GET("/users/:id/wallet-history", func(c *gin.Context) {
+			handlersadmin.GetUserWalletHistoryHandler(c, db)
 		})
 	}
 }

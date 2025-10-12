@@ -32,49 +32,46 @@ func GetAllUsersHandler(c *gin.Context, db *gorm.DB) {
 	})
 }
 
-// GetUserByIDHandler ดึงข้อมูลผู้ใช้คนเดียวตาม ID
+// GetUserByIDHandler ดึงข้อมูลผู้ใช้คนเดียวตาม ID (สำหรับ Admin)
 func GetUserByIDHandler(c *gin.Context, db *gorm.DB) {
-	// 1. ดึง "id" จาก URL parameter
 	id := c.Param("id")
-
 	var user model.User
-	// 2. ค้นหา user ในฐานข้อมูลด้วย ID ที่ได้รับมา
 	if err := db.First(&user, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
-
-	// 3. ไม่ส่งรหัสผ่านกลับไปเพื่อความปลอดภัย
-	user.Password = ""
-
-	// 4. ส่งข้อมูลผู้ใช้กลับไป
-	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data":   user,
-	})
+	user.Password = "" // ไม่ส่งรหัสผ่านกลับไป
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": user})
 }
 
-// GetUserOrdersHandler ดึงประวัติการซื้อเกมทั้งหมดของผู้ใช้
+// GetUserOrdersHandler ดึงประวัติการซื้อเกมทั้งหมดของผู้ใช้ (สำหรับ Admin)
 func GetUserOrdersHandler(c *gin.Context, db *gorm.DB) {
-	// 1. ดึง "id" จาก URL parameter
 	id := c.Param("id")
 	var orders []model.Order
 
-	// 2. ค้นหา Orders ทั้งหมดที่ user_id ตรงกัน
-	//    ใช้ Preload("OrderDetails.Game") เพื่อดึงข้อมูลรายละเอียดการสั่งซื้อและข้อมูลเกมที่ซ้อนอยู่ข้างในมาด้วย
+	// ใช้ Preload เพื่อดึงข้อมูล OrderDetails และ Game ที่ซ้อนอยู่ข้างในมาด้วย
 	if err := db.Preload("OrderDetails.Game").Where("user_id = ?", id).Order("order_date desc").Find(&orders).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch user orders"})
 		return
 	}
 
-	// ถ้าไม่พบข้อมูล GORM จะคืนค่าเป็น slice ว่างๆ (ไม่ใช่ error)
 	if orders == nil {
 		orders = []model.Order{}
 	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": orders})
+}
 
-	// 3. ส่งข้อมูลประวัติการซื้อทั้งหมดกลับไป
-	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data":   orders,
-	})
+// GetUserWalletHistoryHandler ดึงประวัติการเติมเงินทั้งหมดของผู้ใช้ (สำหรับ Admin)
+func GetUserWalletHistoryHandler(c *gin.Context, db *gorm.DB) {
+	id := c.Param("id")
+	var history []model.WalletHistory
+	if err := db.Where("user_id = ?", id).Order("transaction_date desc").Find(&history).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch wallet history"})
+		return
+	}
+
+	if history == nil {
+		history = []model.WalletHistory{}
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": history})
 }

@@ -78,3 +78,24 @@ func GetGameByIDHandler(c *gin.Context, db *gorm.DB) {
     })
 }
 
+// GetMyOrdersHandler ดึงประวัติการซื้อเกมของผู้ใช้ที่กำลังล็อกอินอยู่
+func GetMyOrdersHandler(c *gin.Context, db *gorm.DB) {
+	// 1. ดึง user_id จาก token ที่ middleware แปะมาให้
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	var orders []model.Order
+	// 2. ใช้ Logic เดิมในการค้นหาและ Preload ข้อมูล
+	if err := db.Preload("OrderDetails.Game").Where("user_id = ?", userID).Order("order_date desc").Find(&orders).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch user orders"})
+		return
+	}
+
+	if orders == nil {
+		orders = []model.Order{}
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": orders})
+}
