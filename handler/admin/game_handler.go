@@ -68,7 +68,6 @@ func CreateGame(c *gin.Context, db *gorm.DB) {
 		ReleaseDate: time.Now(),
 	}
 
-
 	result := db.Create(&game)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create game: " + result.Error.Error()})
@@ -183,7 +182,7 @@ func DeleteGameHandler(c *gin.Context, db *gorm.DB) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
 		return
 	}
-	
+
 	imagePath := game.ImageGame
 
 	// 3. สั่งลบเกมด้วย GORM
@@ -202,7 +201,6 @@ func DeleteGameHandler(c *gin.Context, db *gorm.DB) {
 	// 5. ส่ง Status 204 No Content กลับไป ซึ่งเป็นมาตรฐานสำหรับ DELETE request ที่สำเร็จ
 	c.Status(http.StatusNoContent)
 }
-
 
 // GetTopSellingGamesHandler handles fetching the top 5 best-selling games.
 func GetTopSellingGamesHandler(c *gin.Context, db *gorm.DB) {
