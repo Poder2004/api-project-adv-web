@@ -35,6 +35,10 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 	r.GET("/api/games/:id", func(c *gin.Context) {
 		handlers.GetGameByIDHandler(c, db)
 	})
+	// ✅ เพิ่ม Route สำหรับดึง 5 เกมขายดี
+    r.GET("/api/games/top-selling", func(c *gin.Context) {
+        handlersadmin.GetTopSellingGamesHandler(c, db)
+    })
 
 	// Protected routes
 	protected := r.Group("/api")
@@ -113,6 +117,7 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		admin.GET("/users/:id", func(c *gin.Context) {
 			handlersadmin.GetUserByIDHandler(c, db)
 		})
+		
 
 		//เส้นทางสำหรับดึงประวัติการซื้อของผู้ใช้คนนั้น
 		admin.GET("/users/:id/orders", func(c *gin.Context) {

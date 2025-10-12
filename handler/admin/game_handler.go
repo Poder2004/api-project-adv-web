@@ -202,3 +202,73 @@ func DeleteGameHandler(c *gin.Context, db *gorm.DB) {
 	// 5. ส่ง Status 204 No Content กลับไป ซึ่งเป็นมาตรฐานสำหรับ DELETE request ที่สำเร็จ
 	c.Status(http.StatusNoContent)
 }
+
+
+// GetTopSellingGamesHandler handles fetching the top 5 best-selling games.
+func GetTopSellingGamesHandler(c *gin.Context, db *gorm.DB) {
+
+	// สร้าง struct ชั่วคราวเพื่อรับผลลัพธ์จากการจัดอันดับ
+	type GameRank struct {
+		GameID        uint
+		PurchaseCount int
+	}
+
+	var ranks []GameRank
+
+	// --- 1. Query เพื่อหา 5 game_id ที่ถูกซื้อมากที่สุด ---
+	err := db.Model(&model.OrderDetail{}).
+		Select("game_id, count(game_id) as purchase_count").
+		Group("game_id").
+		Order("purchase_count desc").
+		Limit(5).
+		Find(&ranks).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not query game ranks"})
+		return
+	}
+
+	// กรณีที่ยังไม่มีการซื้อขายเลย
+	if len(ranks) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "success",
+			"message": "No sales data available yet",
+			"data":    []model.Game{}, // ส่ง array ว่างกลับไป
+		})
+		return
+	}
+
+	// --- 2. ดึง Game ID ทั้งหมดออกมาใส่ใน slice ---
+	var gameIDs []uint
+	for _, rank := range ranks {
+		gameIDs = append(gameIDs, rank.GameID)
+	}
+
+	// --- 3. ดึงข้อมูลเกมฉบับเต็มของ ID ทั้ง 5 อันดับ ---
+	var topGames []model.Game
+	if err := db.Preload("Category").Where("game_id IN ?", gameIDs).Find(&topGames).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch top game details"})
+		return
+	}
+
+	// --- 4. จัดเรียงข้อมูลเกมให้ตรงกับอันดับที่ได้มา ---
+	// (เพราะ .Where("... IN ...") ไม่ได้รับประกันลำดับ)
+	gameMap := make(map[uint]model.Game)
+	for _, game := range topGames {
+		gameMap[game.GameID] = game
+	}
+
+	var rankedGames []model.Game
+	for _, rank := range ranks {
+		if game, ok := gameMap[rank.GameID]; ok {
+			rankedGames = append(rankedGames, game)
+		}
+	}
+
+	// --- 5. ส่งผลลัพธ์กลับไป ---
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Top 5 selling games fetched successfully",
+		"data":    rankedGames,
+	})
+}
