@@ -49,13 +49,23 @@ func GetUserOrdersHandler(c *gin.Context, db *gorm.DB) {
 	id := c.Param("id")
 	var orders []model.Order
 
+	// --- 👇 [แก้ไข Preload ตรงนี้] ---
 	// ใช้ Preload เพื่อดึงข้อมูล OrderDetails และ Game ที่ซ้อนอยู่ข้างในมาด้วย
-	if err := db.Preload("OrderDetails.Game").Where("user_id = ?", id).Order("order_date desc").Find(&orders).Error; err != nil {
+	err := db.Preload("OrderDetails").
+		// 💡 จุดสำคัญ: Preload Game โดยใช้ Unscoped() เช่นกัน
+		Preload("OrderDetails.Game", func(db *gorm.DB) *gorm.DB {
+			return db.Unscoped()
+		}).
+		Where("user_id = ?", id).
+		Order("order_date desc").
+		Find(&orders).Error
+
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch user orders"})
 		return
 	}
 
-	if orders == nil {
+	if len(orders) == 0 { // ใช้ len() จะปลอดภัยกว่าการเช็ค nil โดยตรง
 		orders = []model.Order{}
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": orders})

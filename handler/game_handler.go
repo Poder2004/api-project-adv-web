@@ -87,9 +87,15 @@ func GetMyOrdersHandler(c *gin.Context, db *gorm.DB) {
 
 	var orders []model.Order
 
-	// --- 👇 [อัปเดต Preload ให้ครบถ้วน] ---
+	// --- 👇 [แก้ไข Preload ทั้งหมดตรงนี้] ---
 	err := db.Preload("User").
 		Preload("DiscountCode").
+		Preload("OrderDetails").
+		// 💡 จุดสำคัญ: Preload Game โดยใช้ Unscoped() เพื่อให้ดึงเกมที่ถูก soft delete มาด้วย
+		Preload("OrderDetails.Game", func(db *gorm.DB) *gorm.DB {
+			return db.Unscoped()
+		}).
+		// Preload Category ของ Game ที่ดึงมาแล้ว
 		Preload("OrderDetails.Game.Category").
 		Where("user_id = ?", userID).
 		Order("order_date desc").

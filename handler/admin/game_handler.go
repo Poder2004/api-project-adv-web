@@ -2,9 +2,9 @@ package handlersadmin
 
 import (
 	"api-game/model"
+	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -176,29 +176,22 @@ func DeleteGameHandler(c *gin.Context, db *gorm.DB) {
 	// 1. ดึง ID จาก URL parameter
 	id := c.Param("id")
 
-	var game model.Game
-	// 2. ค้นหาเกมที่จะลบก่อน เพื่อจะเอา path ของรูปภาพมาใช้ลบไฟล์ทิ้ง
-	if err := db.First(&game, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
-		return
-	}
-
-	imagePath := game.ImageGame
-
-	// 3. สั่งลบเกมด้วย GORM
-	//    เพราะเราเพิ่ม gorm.DeletedAt ใน model แล้ว GORM จะทำ Soft Delete ให้เอง
-	//    (GORM จะรันคำสั่ง UPDATE games SET deleted_at = 'เวลาปัจจุบัน' WHERE id = ...)
+	// 2. สั่งลบเกมด้วย GORM (GORM จะทำ Soft Delete ให้เอง)
+	//    เราไม่จำเป็นต้องค้นหาเกมก่อนแล้ว เพราะไม่ได้ใช้ path รูปภาพอีกต่อไป
 	if err := db.Delete(&model.Game{}, id).Error; err != nil {
+		// ตรวจสอบว่า record ไม่มีอยู่จริงหรือไม่
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete game"})
 		return
 	}
 
-	// 4. (แนะนำ) ลบไฟล์รูปภาพออกจากเซิร์ฟเวอร์ด้วย เพื่อไม่ให้เปลืองพื้นที่
-	if imagePath != "" {
-		os.Remove(imagePath)
-	}
+	// 3. (ลบออก) ไม่ต้องลบไฟล์รูปภาพออกจากเซิร์ฟเวอร์แล้ว
+	// os.Remove(imagePath) // <--- เอาส่วนนี้ออก
 
-	// 5. ส่ง Status 204 No Content กลับไป ซึ่งเป็นมาตรฐานสำหรับ DELETE request ที่สำเร็จ
+	// 4. ส่ง Status 204 No Content กลับไป
 	c.Status(http.StatusNoContent)
 }
 
