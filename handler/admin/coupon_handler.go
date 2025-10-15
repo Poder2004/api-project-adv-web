@@ -17,7 +17,7 @@ func CreateCouponHandler(c *gin.Context, db *gorm.DB) {
 		Description   string  `json:"description"`
 		DiscountValue float64 `json:"discount_value" binding:"required"`
 		DiscountType  string  `json:"discount_type" binding:"required"` // 'fixed' (บาท) or 'percent' (%)
-		MinValue      float64 `json:"min_value"`                      // ยอดซื้อขั้นต่ำ (optional)
+		MinValue      float64 `json:"min_value"`                        // ยอดซื้อขั้นต่ำ (optional)
 		LimitUsage    int     `json:"limit_usage" binding:"required"`
 	}
 
@@ -79,7 +79,6 @@ func GetAllCouponsHandler(c *gin.Context, db *gorm.DB) {
 	})
 }
 
-
 // --- [เพิ่ม] Struct สำหรับรับข้อมูลตอน Update ---
 // เราไม่รับ NameCode เพราะปกติแล้วเราไม่ควรให้แก้ไขรหัสคูปอง
 type UpdateCouponInput struct {
@@ -103,12 +102,11 @@ func UpdateCouponHandler(c *gin.Context, db *gorm.DB) {
 
 	var coupon model.DiscountCode
 	if err := db.First(&coupon, id).Error; err != nil {
-        // ... (error handling เหมือนเดิม) ...
+		// ... (error handling เหมือนเดิม) ...
 		return
 	}
 
-	// --- 👇 อัปเดตค่าต่างๆ รวมถึง NameCode ---
-    coupon.NameCode = input.NameCode // 👈 เพิ่มบรรทัดนี้
+	coupon.NameCode = input.NameCode
 	coupon.Description = input.Description
 	coupon.DiscountValue = input.DiscountValue
 	coupon.DiscountType = input.DiscountType
@@ -123,7 +121,6 @@ func UpdateCouponHandler(c *gin.Context, db *gorm.DB) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": coupon})
 }
-
 
 // --- [เพิ่ม] ฟังก์ชัน DeleteCouponHandler (Soft Delete) ---
 func DeleteCouponHandler(c *gin.Context, db *gorm.DB) {
