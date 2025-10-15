@@ -127,7 +127,11 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		admin.GET("/users/:id/wallet-history", func(c *gin.Context) {
 			handlersadmin.GetUserWalletHistoryHandler(c, db)
 		})
-		admin.PUT("/coupons/:id", func(c *gin.Context) { handlersadmin.UpdateCouponHandler(c, db) })
-		admin.DELETE("/coupons/:id", func(c *gin.Context) { handlersadmin.DeleteCouponHandler(c, db) })
+		admin.PUT("/coupons/:id", func(c *gin.Context) {
+			handlersadmin.UpdateCouponHandler(c, db)
+		})
+		admin.DELETE("/coupons/:id", func(c *gin.Context) {
+			handlersadmin.DeleteCouponHandler(c, db)
+		})
 	}
 }
