@@ -38,7 +38,7 @@ type Game struct {
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relationships
-	Category Category `gorm:"foreignKey:CategoryID" json:"category"`
+	Category Category `gorm:"foreignKey:CategoryID;references:CategoryID"`
 }
 
 // DiscountCode แทนข้อมูลในตาราง discount_code

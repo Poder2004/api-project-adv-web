@@ -107,3 +107,41 @@ func GetMyOrdersHandler(c *gin.Context, db *gorm.DB) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "data": orders})
 }
+
+
+// GetUserLibraryHandler handles fetching all games in the current user's library.
+func GetUserLibraryHandler(c *gin.Context, db *gorm.DB) {
+	// --- 1. ดึง user_id จาก Middleware ---
+	userIDAny, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userID := uint(userIDAny.(float64))
+
+	var userLibraryGames []model.Game
+
+	// --- 2. Query ข้อมูลด้วย GORM ---
+	// GORM จะสร้าง SQL JOIN ให้เราอัตโนมัติจากความสัมพันธ์ที่เรากำหนดไว้
+	err := db.Joins("JOIN user_library ON user_library.game_id = games.game_id").
+		Preload("Category"). // Preload category มาด้วยเผื่อต้องใช้
+		Where("user_library.user_id = ?", userID).
+		Find(&userLibraryGames).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch user library"})
+		return
+	}
+
+	// ถ้าไม่มีเกมในคลัง ให้ส่งกลับเป็น array ว่างๆ
+	if userLibraryGames == nil {
+		userLibraryGames = []model.Game{}
+	}
+
+	// --- 3. ส่งผลลัพธ์กลับไป ---
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "User library fetched successfully",
+		"data":    userLibraryGames,
+	})
+}

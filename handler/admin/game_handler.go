@@ -263,3 +263,5 @@ func GetTopSellingGamesHandler(c *gin.Context, db *gorm.DB) {
 		"data":    rankedGames,
 	})
 }
+
+

@@ -82,7 +82,12 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 
 		protected.GET("/orders", func(c *gin.Context) {
 			handlers.GetMyOrdersHandler(c, db)
-		})
+		})   // ✅ เพิ่ม Route สำหรับดึงคลังเกม
+        protected.GET("/my-library", func(c *gin.Context) {
+            handlers.GetUserLibraryHandler(c, db)
+        })
+
+		
 
 	}
 
