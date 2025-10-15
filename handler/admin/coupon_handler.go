@@ -1,8 +1,10 @@
-package handlersadmin 
+package handlersadmin
 
 import (
 	"api-game/model"
+	"errors"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -15,7 +17,7 @@ func CreateCouponHandler(c *gin.Context, db *gorm.DB) {
 		Description   string  `json:"description"`
 		DiscountValue float64 `json:"discount_value" binding:"required"`
 		DiscountType  string  `json:"discount_type" binding:"required"` // 'fixed' (บาท) or 'percent' (%)
-		MinValue      float64 `json:"min_value"`                      // ยอดซื้อขั้นต่ำ (optional)
+		MinValue      float64 `json:"min_value"`                        // ยอดซื้อขั้นต่ำ (optional)
 		LimitUsage    int     `json:"limit_usage" binding:"required"`
 	}
 
@@ -75,4 +77,66 @@ func GetAllCouponsHandler(c *gin.Context, db *gorm.DB) {
 		"message": "Coupons fetched successfully",
 		"data":    coupons,
 	})
+}
+
+// --- [เพิ่ม] Struct สำหรับรับข้อมูลตอน Update ---
+// เราไม่รับ NameCode เพราะปกติแล้วเราไม่ควรให้แก้ไขรหัสคูปอง
+type UpdateCouponInput struct {
+	NameCode      string  `json:"name_code" binding:"required"`
+	Description   string  `json:"description" binding:"required"`
+	DiscountValue float64 `json:"discount_value" binding:"required"`
+	DiscountType  string  `json:"discount_type" binding:"required"`
+	MinValue      float64 `json:"min_value"`
+	LimitUsage    int     `json:"limit_usage" binding:"required"`
+}
+
+// --- [เพิ่ม] ฟังก์ชัน UpdateCouponHandler ---
+func UpdateCouponHandler(c *gin.Context, db *gorm.DB) {
+	id := c.Param("id")
+	var input UpdateCouponInput
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
+		return
+	}
+
+	var coupon model.DiscountCode
+	if err := db.First(&coupon, id).Error; err != nil {
+		// ... (error handling เหมือนเดิม) ...
+		return
+	}
+
+	coupon.NameCode = input.NameCode
+	coupon.Description = input.Description
+	coupon.DiscountValue = input.DiscountValue
+	coupon.DiscountType = input.DiscountType
+	coupon.MinValue = input.MinValue
+	coupon.LimitUsage = input.LimitUsage
+
+	// บันทึกการเปลี่ยนแปลงลงฐานข้อมูล
+	if err := db.Save(&coupon).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update coupon"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": coupon})
+}
+
+// --- [เพิ่ม] ฟังก์ชัน DeleteCouponHandler (Soft Delete) ---
+func DeleteCouponHandler(c *gin.Context, db *gorm.DB) {
+	id := c.Param("id") // ดึง ID ของคูปองที่จะลบจาก URL
+
+	// GORM จะทำ Soft Delete อัตโนมัติ เพราะใน model มี gorm.DeletedAt
+	// มันจะรันคำสั่ง: UPDATE "discount_code" SET "deleted_at"='...' WHERE "did" = ?
+	if err := db.Delete(&model.DiscountCode{}, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Coupon not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete coupon"})
+		return
+	}
+
+	// ส่ง Status 204 No Content กลับไปเมื่อสำเร็จ (เป็นมาตรฐานของ REST API)
+	c.Status(http.StatusNoContent)
 }
