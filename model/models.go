@@ -51,6 +51,7 @@ type DiscountCode struct {
 	MinValue      float64 `gorm:"column:min_value;type:decimal(10,2);not null;default:0.00" json:"min_value"`
 	LimitUsage    int     `gorm:"column:limit_usage" json:"limit_usage"`
 	UsedCount     int     `gorm:"column:used_count;default:0" json:"used_count"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"` 
 }
 
 func (DiscountCode) TableName() string {

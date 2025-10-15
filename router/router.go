@@ -36,9 +36,9 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		handlers.GetGameByIDHandler(c, db)
 	})
 	// ✅ เพิ่ม Route สำหรับดึง 5 เกมขายดี
-    r.GET("/api/games/top-selling", func(c *gin.Context) {
-        handlersadmin.GetTopSellingGamesHandler(c, db)
-    })
+	r.GET("/api/games/top-selling", func(c *gin.Context) {
+		handlersadmin.GetTopSellingGamesHandler(c, db)
+	})
 
 	// Protected routes
 	protected := r.Group("/api")
@@ -71,7 +71,7 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 			handlers.GetWalletHistoryHandler(c, db)
 		})
 
-			// ✅ เพิ่ม Route สำหรับ Checkout
+		// ✅ เพิ่ม Route สำหรับ Checkout
 		protected.POST("/checkout", func(c *gin.Context) {
 			handlersauser.CheckoutHandler(c, db)
 		})
@@ -117,7 +117,6 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		admin.GET("/users/:id", func(c *gin.Context) {
 			handlersadmin.GetUserByIDHandler(c, db)
 		})
-		
 
 		//เส้นทางสำหรับดึงประวัติการซื้อของผู้ใช้คนนั้น
 		admin.GET("/users/:id/orders", func(c *gin.Context) {
@@ -128,5 +127,7 @@ func SetupRouter(r *gin.Engine, db *gorm.DB) {
 		admin.GET("/users/:id/wallet-history", func(c *gin.Context) {
 			handlersadmin.GetUserWalletHistoryHandler(c, db)
 		})
+		admin.PUT("/coupons/:id", func(c *gin.Context) { handlersadmin.UpdateCouponHandler(c, db) })
+		admin.DELETE("/coupons/:id", func(c *gin.Context) { handlersadmin.DeleteCouponHandler(c, db) })
 	}
 }
