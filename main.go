@@ -26,7 +26,7 @@ func main() {
 	// --- เริ่มส่วนที่แก้ไข CORS ---
 	// กำหนดค่าคอนฟิกของ CORS ด้วยตัวเอง
 	config := cors.Config{
-		AllowOrigins:     []string{"http://localhost:4200"},
+		AllowOrigins:     []string{"https://game-shop-oracle.web.app","https://webgamepoint.web.app","http://localhost:4200"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
